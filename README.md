@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Hermes Agent](https://img.shields.io/badge/Hermes%20Agent-skill-blueviolet)](https://hermes-agent.nousresearch.com)
 
-> **Make every AI action visible.** A Hermes Agent skill that translates tool calls into plain language — live (toggleable) + post-task log (always on).
+> **Make every AI action visible.** A Hermes Agent skill that translates tool calls into plain language — live (toggleable) + post-task log (always on, saved to files).
 
 ---
 
@@ -18,6 +18,8 @@ When you say "organize my desktop," the AI executes dozens of file operations be
 | **Live Mode** 🟢 | Off (toggleable) | Before each batch of tool calls, the agent announces what it's about to do — **≤15 characters** per announcement |
 | **Post-Task Log** 📋 | Always on | After task completion, a timestamped summary of every operation, grouped and translated into human language |
 
+**Bonus: Logs are also saved as files** — every post-task log is written to `{HERMES_HOME}/logs/operations/` for later review.
+
 ### Live Mode example
 
 ```
@@ -26,7 +28,7 @@ When you say "organize my desktop," the AI executes dozens of file operations be
 📡 Moving photo.jpg to the "Pictures" folder...
 ```
 
-### Post-Task Log example
+### Post-Task Log example (in chat)
 
 ```
 📋 Operation Log
@@ -35,6 +37,28 @@ When you say "organize my desktop," the AI executes dozens of file operations be
 [14:23:05] Moved 12 image files to "Pictures"
 [14:23:08] Moved 35 documents to "Documents"
 📌 Total: 47 operations | 10 seconds elapsed
+```
+
+### Saved file example
+
+Saved to `~/.hermes/logs/operations/2026-06-24_15-30-00_organize-desktop.md`:
+
+```
+# AI Operation Log
+**Task:** organize desktop
+**Started:** 2026-06-24 15:30:00
+**Duration:** 11 seconds
+**Total operations:** 47
+
+---
+
+📋 Operation Log
+[15:30:01] Scanned desktop, found 47 files
+[15:30:02] Created "Pictures" and "Documents" folders
+[15:30:05] Moved 12 image files to "Pictures"
+[15:30:08] Moved 35 documents to "Documents"
+[15:30:10] Deleted 0 files
+📌 Total: 47 operations | 11 seconds elapsed
 ```
 
 ---
@@ -47,6 +71,7 @@ Most users interact with AI as a **black box** — input in, output out. This sk
 - **Trust**: See the AI's reasoning path before it acts
 - **Learning**: New users understand what AI tools actually do under the hood
 - **Debugging**: When something goes wrong, the log shows where
+- **Audit**: All logs saved to disk — review what the AI did hours or days later
 
 ---
 
@@ -98,14 +123,24 @@ Say this in **any language** during conversation:
 > "别报了"
 > "Shut up and work"
 
-### Review Post-Task Log
+### Review Post-Task Log (in chat)
 
 Post-task logs are **always generated** — just finish any task and look for the `📋 Operation Log` section at the end.
 
-### Review Past Log
+### Review Past Log (from disk)
 
-> "What did you just do?"
-> "刚才你干了什么?"
+Logs are saved to `{HERMES_HOME}/logs/operations/`. Ask the agent:
+
+> "What did I do yesterday?"
+> "Show me the log from when I organized my desktop"
+> "What was the last thing I did?"
+
+### File Location by Platform
+
+| Platform | Log directory |
+|----------|-------------|
+| **Linux / macOS** | `~/.hermes/logs/operations/` |
+| **Windows** | `~/AppData/Local/hermes/logs/operations/` |
 
 ---
 
@@ -145,9 +180,9 @@ The agent translates raw tool calls into language a human can understand:
 
 - [x] Live mode (toggleable)
 - [x] Post-task log (always on)
+- [x] Log persistence — saved to `{HERMES_HOME}/logs/operations/`
 - [x] Failure transparency (log failures honestly)
 - [ ] Configurable verbosity levels
-- [ ] Export log to file
 
 ---
 
@@ -166,13 +201,19 @@ MIT
 ## FAQ
 
 **Q: Does this consume extra tokens?**
-A: Minimal (~50-150 tokens for post-task log, ~100-300 for live+log). The information is already in the agent's context — this skill just formats and summarizes it.
+A: Minimal (~50-150 tokens for post-task log, ~100-300 for live+log). The information is already in the agent's context — this skill just formats and summarizes it. Writing to disk costs nothing.
 
 **Q: Does it slow down responses?**
 A: No. The agent announces before tool calls (not during execution). No delay.
 
 **Q: Can I use this with any AI model?**
 A: This is a Hermes Agent behavioral skill — it works with any model Hermes runs on top of. It's about how the agent *reports* its actions, not a model-level feature.
+
+**Q: Where are logs saved?**
+A: `{HERMES_HOME}/logs/operations/` — `~/.hermes/logs/operations/` on Linux/macOS, `~/AppData/Local/hermes/logs/operations/` on Windows.
+
+**Q: Will log files fill up my disk?**
+A: Each log is ~0.5-2KB. Even with 1000 tasks that's only ~1-2MB. Negligible.
 
 **Q: Why would I want this?**
 A: If you've ever wondered "what exactly did that AI just do to my files?" — this is for you.

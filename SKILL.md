@@ -15,7 +15,7 @@ metadata:
 > "What is the AI actually doing right now?" — This skill makes every step visible, in plain language.
 
 - **Live Mode** (🟢 toggleable): Before each batch of tool calls, the agent announces what it's about to do in ≤15 chars of human language.
-- **Post-Task Log** (✅ always on): After a task completes, a timestamped summary of every operation, grouped and translated into human language.
+- **Post-Task Log** (✅ always on): After a task completes, a timestamped summary of every operation, grouped and translated into human language. Logs are also **saved to files** for later review.
 
 Two golden rules:
 1. **Speak human** — not `shutil.move('a.pdf', '/docs/')`, but "moved a.pdf to the Docs folder"
@@ -66,6 +66,82 @@ Appended automatically at task end:
 3. Timestamps precise to seconds
 4. Short (1-3 steps) → just 1-2 lines
 5. Long (20+ steps) → **merge** — "Moved 35 documents" not 35 individual lines
+
+## Log Storage (File Persistence)
+
+In addition to appearing in the conversation, every post-task log is **saved to a file** so you can review past operations.
+
+### File Location
+
+```
+{HERMES_HOME}/logs/operations/
+```
+
+Default on each platform:
+
+| Platform | Path |
+|----------|------|
+| **Linux / macOS** | `~/.hermes/logs/operations/` |
+| **Windows** | `~/AppData/Local/hermes/logs/operations/` |
+
+### File Naming
+
+Each task creates one file with a task-based name:
+
+```
+2026-06-24_15-30-00_your-request-summary.md
+```
+
+The summary part is a short slug of what the task was about (auto-generated from the user's request):
+
+```
+2026-06-24_15-30-00_search-ai-naming-research.md
+2026-06-24_16-45-12_organize-desktop.md
+2026-06-25_09-12-33_fix-bug-in-auth-module.md
+```
+
+### File Content
+
+Each saved file contains the full operation log with a header:
+
+```markdown
+# AI Operation Log
+**Task:** organize desktop
+**Started:** 2026-06-24 15:30:00
+**Duration:** 11 seconds
+**Total operations:** 47
+
+---
+
+📋 Operation Log
+[15:30:01] Scanned desktop, found 47 files
+[15:30:02] Created "Pictures" and "Documents" folders
+[15:30:05] Moved 12 image files to "Pictures"
+[15:30:08] Moved 35 documents to "Documents"
+[15:30:10] Deleted 0 files
+📌 Total: 47 operations | 11 seconds elapsed
+```
+
+### Save Procedure (Agent Instructions)
+
+When a task ends with a post-task log:
+
+1. Construct the log content (same as what you show in chat)
+2. Use `write_file(path=...)` to save it to `{HERMES_HOME}/logs/operations/YYYY-MM-DD_HH-MM-SS_task-slug.md`
+3. Derive the task slug from the user's request — short, lowercase, hyphens for spaces. Max 40 chars.
+
+### Reading Old Logs
+
+User can ask:
+- "What did I do yesterday?" → `search_files(pattern='2026-06-24*', path='~/AppData/Local/hermes/logs/operations/')`
+- "Show me the log from when I organized my desktop" → search within the directory
+- "What was the last thing I did?" → `ls -t` on the operations directory, read the newest file
+
+### When NOT to Save
+
+- **Trivial single-step tasks** ("what's the weather", "translate this") — no log file needed
+- **User explicitly says** "don't save that"
+- **Sensitive operations** the user marks as private — agent can ask or respect context
 
 ## Human Translation Table (Agent Internal Reference)
 
@@ -149,6 +225,8 @@ The agent detects mode switches from **natural language**. No special commands n
 
 5. **Inconsistent timestamp format** — Always use `[HH:MM:SS]`. No mixing `14:23` with `2:23 PM`.
 
+6. **Log directory doesn't exist** — Agent must create it. Use `write_file` which auto-creates parent directories.
+
 ## Comparison: On vs Off
 
 | | No Transparency | Post-Task Log Only | Live + Log |
@@ -156,6 +234,7 @@ The agent detects mode switches from **natural language**. No special commands n
 | User sees | "Done" | "Done" + operation list | Step-by-step + final list |
 | Trust | Low | Medium | High |
 | Token overhead | 0 | ~50-150 | ~100-300 |
+| Disk usage | 0 | ~0.5-2KB per task | ~0.5-2KB per task |
 | Best for | High-trust/routine | File ops/first time | Sensitive ops/teaching |
 
 ## Verification Checklist
@@ -166,3 +245,5 @@ The agent detects mode switches from **natural language**. No special commands n
 - [ ] Merged: similar operations grouped, no line-by-line spam
 - [ ] Toggle: user says stop → stops, user says start → starts
 - [ ] Failures: logged honestly, not hidden
+- [ ] File saved: log written to `{HERMES_HOME}/logs/operations/YYYY-MM-DD_HH-MM-SS_task.md`
+- [ ] Trivial tasks skipped: no file saved for single-step ops
